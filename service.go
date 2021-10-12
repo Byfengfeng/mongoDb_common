@@ -23,7 +23,7 @@ func NewMongoDbClient(option *common.ConnectOption) *mongo.Client {
 
 func GetOptions(db,user,passwd string,maxPoolSize uint64) *options.ClientOptions {
 	opts:= &options.ClientOptions{
-		Auth: &options.Credential{AuthMechanism:"SCRAM-SHA-1",
+		Auth: &options.Credential{AuthMechanism: common.SHA1,
 			AuthSource: db,
 			Username: user,
 			Password: passwd},

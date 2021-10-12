@@ -9,3 +9,10 @@ type ConnectOption struct {
 	Db string 				`json:"db"`
 	MaxConnPoolSize uint64  `json:"max_conn_pool_size"`
 }
+
+type Encryption string
+
+const (
+	SHA1 = "SCRAM-SHA-1"
+	SHA256 = "SCRAM-SHA-256"
+)
