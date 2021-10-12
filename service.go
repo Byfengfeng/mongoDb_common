@@ -31,3 +31,11 @@ func GetOptions(db,user,passwd string,maxPoolSize uint64) *options.ClientOptions
 	}
 	return opts
 }
+
+func GetDatabase(client *mongo.Client,dataBaseName string) *mongo.Database {
+	return client.Database(dataBaseName)
+}
+
+func GetCollection(client *mongo.Client,dataBaseName,tableName string) *mongo.Collection {
+	return client.Database(dataBaseName).Collection(tableName)
+}
