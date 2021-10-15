@@ -1,7 +1,6 @@
 package data
 
 type Log struct {
-	Id string `json:"_id"`
 	Cid int64 `json:"cid"`
 	LogLv int32 `json:"log_lv"`
 	Content string `json:"content"`
@@ -11,7 +10,6 @@ type Log struct {
 type LogEnum string
 
 const (
-	Id = "_id"
 	Cid = "cid"
 	LogLv = "log_lv"
 	Content ="context"

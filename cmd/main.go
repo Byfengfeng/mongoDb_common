@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"mongoDb_common/common"
-	"time"
 )
 
-
+type Log struct {
+	Cid int64
+	CreateTime int64
+	Log string
+}
 
 func main() {
 	options := &common.ConnectOption{
@@ -17,17 +20,21 @@ func main() {
 		Db: "test",
 		MaxConnPoolSize: 5,
 	}
-	mongoDb := common.NewMongoDb(options)
-	currentTime := time.Now().UnixNano() / 1e6
-	mongoDb.AddLog(1,currentTime,2,"asdasdasd")
-	logs, err := mongoDb.FindLog(1, currentTime, currentTime)
+	dbSession := common.NewMongoDb(options)
+	//currentTime := time.Now().UnixNano() / 1e6
+	//dbSession.AddLog(data.Log{
+	//	Cid: 1,
+	//	LogLv: 2,
+	//	Content: "123",
+	//	CreateTime: currentTime,
+	//})
+	//log, err := dbSession.FindLog(1, currentTime, currentTime)
+	//if err != nil {
+	//	panic(err)
+	//}
+	one, err := dbSession.FindOne(1, 1634290859284, 1634290881647)
 	if err != nil {
 		panic(err)
 	}
-	if len(logs) > 0 {
-		for _,log := range logs {
-			fmt.Println(log)
-		}
-	}
-
+	fmt.Println(one)
 }
