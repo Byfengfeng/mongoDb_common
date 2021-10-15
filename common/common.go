@@ -1,14 +1,11 @@
 package common
 
 import (
-	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"gopkg.in/mgo.v2"
 	data "mongoDb_common"
 	"mongoDb_common/inter"
-	"time"
 )
 
 //mongoDb config data
@@ -21,64 +18,70 @@ type ConnectOption struct {
 	MaxConnPoolSize uint64  `json:"max_conn_pool_size"`
 }
 
+type Encryption string
+
 const (
 	SHA1 = "SCRAM-SHA-1"
 	SHA256 = "SCRAM-SHA-256"
 )
 
 type MongoDb struct {
-	Client *mongo.Client
-	LogDb *mongo.Collection
+	Session *mgo.Session
+	LogDb *mgo.Collection
 }
 
-func NewMongoDbClient(option *ConnectOption) *mongo.Client {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().
-		ApplyURI(fmt.Sprintf("mongodb://%s:%d",option.Address,option.Port)),
-		&options.ClientOptions{
-			Auth: &options.Credential{AuthMechanism: SHA1,
-				AuthSource: option.Db,
-				Username: option.Use,
-				Password: option.PassWd},
-			MaxPoolSize: &option.MaxConnPoolSize,
-		})
+
+
+//url: mongodb://myuser:mypass@localhost:40001,otherhost:40001/mydb
+func NewMongoDbSession(option *ConnectOption) *mgo.Session {
+	//info := &mgo.DialInfo{
+	//	Addrs:    []string{"mongodb://localhost:27017"},Timeout:  60 * time.Second,Database: option.Db,Username: option.Use,Password: option.PassWd}
+	//session,err := mgo.DialWithInfo(info)
+	session,err := mgo.Dial(fmt.Sprintf("%s:%d",option.Address,option.Port))
+	//session, err := mgo.Dial(fmt.Sprintf("mongodb://%s:%s@%s:%d/%s?authSource=%s",
+	//	option.Use,
+	//	option.PassWd,
+	//	option.Address,
+	//	option.Port,
+	//	option.Db,
+	//	option.Db))
 	if err != nil {
 		panic(err)
 	}
-	return client
+	return session
 }
-
-
-
 
 func NewMongoDb(option *ConnectOption) inter.MongoDbInterface {
-	client := NewMongoDbClient(option)
-	mongoDb := &MongoDb{Client: client}
-	mongoDb.GetLogCollection(option.Db,"log")
-	return mongoDb
+	session := NewMongoDbSession(option)
+	//credential := &mgo.Credential{
+	//		Mechanism: SHA1,
+	//		Source: option.Db,
+	//		Username: option.Use,
+	//		Password: option.PassWd,
+	//		}
+
+	//session.Login(credential)
+	db := session.DB(option.Db)
+	db.Login(option.Use,option.PassWd)
+	LogDb := db.C("test")
+	return &MongoDb{Session: session,LogDb: LogDb}
 }
 
-func (m *MongoDb) GetLogCollection(dataBaseName,tableName string) *mongo.Collection {
-	m.LogDb = m.Client.Database(dataBaseName).Collection(tableName)
+func (m *MongoDb) GetLogCollection(dataBaseName,tableName string) *mgo.Collection {
+	m.LogDb = m.Session.DB(dataBaseName).C(tableName)
 	return m.LogDb
 }
 
-func (m *MongoDb) GetDatabase(dataBaseName string) *mongo.Database {
-	return m.Client.Database(dataBaseName)
+func (m *MongoDb) GetDatabase(dataBaseName string) *mgo.Database {
+	return m.Session.DB(dataBaseName)
 }
 
-func (m *MongoDb) GetCollection(dataBaseName,tableName string) *mongo.Collection {
-	return m.Client.Database(dataBaseName).Collection(tableName)
+func (m *MongoDb) GetCollection(dataBaseName,tableName string) *mgo.Collection {
+	return m.Session.DB(dataBaseName).C(tableName)
 }
 
-func (m *MongoDb) AddLog(cid,createTime int64,logLv int8,log string)  {
-	_, err := m.LogDb.InsertOne(context.TODO(), bson.D{
-		{"cid", cid},
-		{"log_lv", logLv},
-		{"context", log},
-		{"create_time", createTime},
-	})
+func (m *MongoDb) AddLog(log interface{})  {
+	err := m.LogDb.Insert(&log)
 	if err != nil {
 		return
 	}
@@ -92,38 +95,40 @@ func (m *MongoDb) AddLog(cid,createTime int64,logLv int8,log string)  {
 不等于		{<key>:{$ne:<value>}}	db.col.find({"likes":{$ne:50}}).pretty()	where likes != 50
  */
 
-func (m *MongoDb) FindLog(cid,startTime,endTime int64) ([]*data.Log,error) {
-	//cursor,err := m.LogDb.Find(context.TODO(),bson.D{
-	//	{"cid", cid},
+func (m *MongoDb) FindLog(cid,startTime,endTime int64) ([]data.Log,error) {
+	iter := m.LogDb.Find(bson.D{
+		//{"cid", cid},
 		//{"$gte", bson.A{"create_time", startTime}},
 		//{"$lte", bson.A{"create_time", endTime}},
-	//})
-	cursor,err := m.LogDb.Find(context.TODO(),bson.M{
-		"cid": cid,
-		//{"$gte", bson.A{"create_time", startTime}},
-		//{"$lte", bson.A{"create_time", endTime}},
-	})
-	if err != nil {
-		return nil,err
-	}
-	logs := make([]*data.Log,0)
-	for cursor.Next(context.TODO()) {
-		logMap := make(map[string]interface{})
-		err = cursor.Decode(&logMap)
-		if err != nil {
-			panic(err)
-		}
-		if len(logMap) > 0 {
-			logs = append(logs,&data.Log{
-				Cid: logMap[data.Cid].(int64),
-				LogLv: logMap[data.LogLv].(int32),
-				Content: logMap[data.Content].(string),
-				CreateTime: logMap[data.CreateTime].(int64),
+	}).Sort("createtime").Iter()
+	logs := make(map[string]interface{},0)
+	logData := make([]data.Log,0)
+	for iter.Next(&logs) {
+		if len(logs) > 0 {
+			logData = append(logData,data.Log{
+				Cid: logs[data.Cid].(int64),
 			})
 		}
 
 	}
-	return logs,nil
+	if err := iter.Close(); err != nil {
+		return nil,err
+	}
+	return logData,nil
 }
 
+func (m *MongoDb) FindOne(cid,startTime,endTime int64) ([]data.Log,error) {
+	//log := data.Log{}
+	logList := make([]data.Log,0)
 
+	query := bson.M{
+		"$and": []bson.M{
+			bson.M{"cid": bson.M{"eq": cid}},
+			bson.M{"create_time": bson.M{"gt": startTime}},
+			bson.M{"create_time": bson.M{"lt": endTime}},
+		},
+	}
+
+	m.LogDb.Find(query).All(&logList) // 某个时间段
+	return logList,nil
+}
