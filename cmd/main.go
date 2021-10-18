@@ -7,12 +7,20 @@ import (
 	"time"
 )
 
+type Log struct {
+	Cid int64
+	CreateTime int64
+	Log string
+}
+
 func main() {
 	options := &common.ConnectOption{
-		Address: "localhost",
+		Address: "127.0.0.1",
 		Port: 27017,
-		Use: "aonuo",
-		PassWd: "8888",
+		MongoDbUse: "admin",
+		MongoDbPassWd: "123456",
+		DbUse: "aonuo",
+		DbPassWd: "8888",
 		Db: "test",
 		MaxConnPoolSize: 5,
 	}

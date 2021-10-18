@@ -12,8 +12,10 @@ import (
 type ConnectOption struct {
 	Address string  		`json:"address"`
 	Port uint16 			`json:"port"`
-	Use string 				`json:"use"`
-	PassWd string 			`json:"pass_wd"`
+	MongoDbUse string 		`json:"mongo_db_use"`
+	MongoDbPassWd string 	`json:"mongo_db_pass_wd"`
+	DbUse string 			`json:"use"`
+	DbPassWd string 		`json:"pass_wd"`
 	Db string 				`json:"db"`
 	MaxConnPoolSize uint64  `json:"max_conn_pool_size"`
 }
@@ -33,37 +35,21 @@ type MongoDb struct {
 
 
 //url: mongodb://myuser:mypass@localhost:40001,otherhost:40001/mydb
-func NewMongoDbSession(option *ConnectOption) *mgo.Session {
-	//info := &mgo.DialInfo{
-	//	Addrs:    []string{"mongodb://localhost:27017"},Timeout:  60 * time.Second,Database: option.Db,Username: option.Use,Password: option.PassWd}
-	//session,err := mgo.DialWithInfo(info)
-	session,err := mgo.Dial(fmt.Sprintf("%s:%d",option.Address,option.Port))
-	//session, err := mgo.Dial(fmt.Sprintf("mongodb://%s:%s@%s:%d/%s?authSource=%s",
-	//	option.Use,
-	//	option.PassWd,
-	//	option.Address,
-	//	option.Port,
-	//	option.Db,
-	//	option.Db))
+func NewMongoDb(option *ConnectOption) inter.MongoDbInterface {
+	session,err := mgo.Dial(fmt.Sprintf("%s:%s@%s:%d",option.MongoDbUse,option.MongoDbPassWd,option.Address,option.Port))
 	if err != nil {
 		panic(err)
 	}
-	return session
-}
 
-func NewMongoDb(option *ConnectOption) inter.MongoDbInterface {
-	session := NewMongoDbSession(option)
-	//credential := &mgo.Credential{
-	//		Mechanism: SHA1,
-	//		Source: option.Db,
-	//		Username: option.Use,
-	//		Password: option.PassWd,
-	//		}
-
-	//session.Login(credential)
+	//session.SetMode(mgo.Monotonic, true)
 	db := session.DB(option.Db)
-	db.Login(option.Use,option.PassWd)
-	LogDb := db.C("test")
+	err = db.Login(option.DbUse,option.DbPassWd)
+	if err != nil {
+		panic(err)
+	}
+	session.SetPoolLimit(100)
+	LogDb := db.C(option.Db)
+	defer session.Close()
 	return &MongoDb{Session: session,LogDb: LogDb}
 }
 
@@ -83,6 +69,7 @@ func (m *MongoDb) GetCollection(dataBaseName,tableName string) *mgo.Collection {
 func (m *MongoDb) AddLog(log interface{})  {
 	err := m.LogDb.Insert(&log)
 	if err != nil {
+		panic(err)
 		return
 	}
 }
