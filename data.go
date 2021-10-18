@@ -11,7 +11,7 @@ type LogEnum string
 
 const (
 	Cid = "cid"
-	LogLv = "log_lv"
+	LogLv = "loglv"
 	Content ="context"
-	CreateTime = "create_time"
+	CreateTime = "createtime"
 )

@@ -121,14 +121,23 @@ func (m *MongoDb) FindOne(cid,startTime,endTime int64) ([]data.Log,error) {
 	//log := data.Log{}
 	logList := make([]data.Log,0)
 
-	query := bson.M{
-		"$and": []bson.M{
-			bson.M{"cid": bson.M{"eq": cid}},
-			bson.M{"create_time": bson.M{"gt": startTime}},
-			bson.M{"create_time": bson.M{"lt": endTime}},
-		},
-	}
-
-	m.LogDb.Find(query).All(&logList) // 某个时间段
+	//query := bson.M{
+	//	//bson.M{
+	//	"cid": bson.M{"$eq": cid},
+	//		"create_time": bson.M{"$gt": startTime,"$lt": endTime},
+	//		//bson.M{"$lte": endTime},
+	//	//},
+	//}
+	var query []bson.M
+	query = append(query,bson.M{
+		"cid": bson.M{"$eq": cid},
+	})
+	query = append(query,bson.M{
+		"createtime": bson.M{"$gte": startTime},
+	})
+	query = append(query,bson.M{
+		"createtime": bson.M{"$lt": endTime+1},
+	})
+	m.LogDb.Find(bson.M{"$and": query}).All(&logList) // 某个时间段
 	return logList,nil
 }
