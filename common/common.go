@@ -49,7 +49,6 @@ func NewMongoDb(option *ConnectOption) inter.MongoDbInterface {
 	}
 	session.SetPoolLimit(100)
 	LogDb := db.C(option.Db)
-	defer session.Close()
 	return &MongoDb{Session: session,LogDb: LogDb}
 }
 
@@ -69,6 +68,7 @@ func (m *MongoDb) GetCollection(dataBaseName,tableName string) *mgo.Collection {
 func (m *MongoDb) AddLog(log interface{})  {
 	err := m.LogDb.Insert(&log)
 	if err != nil {
+		m.Session.Close()
 		panic(err)
 		return
 	}
