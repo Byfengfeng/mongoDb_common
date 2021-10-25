@@ -19,8 +19,8 @@ func main() {
 	}
 	mongoDb := common.NewMongoDb(options)
 	currentTime := time.Now().UnixNano() / 1e6
-	mongoDb.AddLog(1,currentTime,2,"asdasdasd")
-	logs, err := mongoDb.FindLog(1, currentTime, currentTime)
+	mongoDb.AddLog(2,currentTime,2,"asdasdasd")
+	logs, err := mongoDb.FindLog(2, 0, currentTime)
 	if err != nil {
 		panic(err)
 	}

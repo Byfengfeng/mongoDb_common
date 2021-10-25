@@ -93,15 +93,11 @@ func (m *MongoDb) AddLog(cid,createTime int64,logLv int8,log string)  {
  */
 
 func (m *MongoDb) FindLog(cid,startTime,endTime int64) ([]*data.Log,error) {
-	//cursor,err := m.LogDb.Find(context.TODO(),bson.D{
-	//	{"cid", cid},
-		//{"$gte", bson.A{"create_time", startTime}},
-		//{"$lte", bson.A{"create_time", endTime}},
-	//})
-	cursor,err := m.LogDb.Find(context.TODO(),bson.M{
-		"cid": cid,
-		//{"$gte", bson.A{"create_time", startTime}},
-		//{"$lte", bson.A{"create_time", endTime}},
+	
+	cursor,err := m.LogDb.Find(context.TODO(),bson.D{
+		{"cid", cid},
+		{"create_time", bson.D{{"$gte", startTime}}},
+		{"create_time", bson.D{{"$lte", endTime}}},
 	})
 	if err != nil {
 		return nil,err
