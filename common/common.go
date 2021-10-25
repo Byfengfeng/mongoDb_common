@@ -18,6 +18,7 @@ type ConnectOption struct {
 	Use string 				`json:"use"`
 	PassWd string 			`json:"pass_wd"`
 	Db string 				`json:"db"`
+	Table string 			`json:"table"`
 	MaxConnPoolSize uint64  `json:"max_conn_pool_size"`
 }
 
@@ -55,7 +56,7 @@ func NewMongoDbClient(option *ConnectOption) *mongo.Client {
 func NewMongoDb(option *ConnectOption) inter.MongoDbInterface {
 	client := NewMongoDbClient(option)
 	mongoDb := &MongoDb{Client: client}
-	mongoDb.GetLogCollection(option.Db,"log")
+	mongoDb.GetLogCollection(option.Db,option.Table)
 	return mongoDb
 }
 
@@ -93,7 +94,7 @@ func (m *MongoDb) AddLog(cid,createTime int64,logLv int8,log string)  {
  */
 
 func (m *MongoDb) FindLog(cid,startTime,endTime int64) ([]*data.Log,error) {
-	
+
 	cursor,err := m.LogDb.Find(context.TODO(),bson.D{
 		{"cid", cid},
 		{"create_time", bson.D{{"$gte", startTime}}},

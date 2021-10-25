@@ -15,6 +15,7 @@ func main() {
 		Use: "aonuo",
 		PassWd: "8888",
 		Db: "test",
+		Table: "华山论剑",
 		MaxConnPoolSize: 5,
 	}
 	mongoDb := common.NewMongoDb(options)
