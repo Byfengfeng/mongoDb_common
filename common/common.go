@@ -6,7 +6,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	data "mongoDb_common"
 	"mongoDb_common/inter"
 	"time"
 )
@@ -79,6 +78,7 @@ func (m *MongoDb) AddLog(cid,createTime int64,logLv int8,log string)  {
 		{"log_lv", logLv},
 		{"context", log},
 		{"create_time", createTime},
+		{"test","1"},
 	})
 	if err != nil {
 		return
@@ -93,8 +93,7 @@ func (m *MongoDb) AddLog(cid,createTime int64,logLv int8,log string)  {
 不等于		{<key>:{$ne:<value>}}	db.col.find({"likes":{$ne:50}}).pretty()	where likes != 50
  */
 
-func (m *MongoDb) FindLog(cid,startTime,endTime int64) ([]*data.Log,error) {
-
+func (m *MongoDb) FindLog(cid,startTime,endTime int64) ([]map[string]interface{},error) {
 	cursor,err := m.LogDb.Find(context.TODO(),bson.D{
 		{"cid", cid},
 		{"create_time", bson.D{{"$gte", startTime}}},
@@ -103,7 +102,7 @@ func (m *MongoDb) FindLog(cid,startTime,endTime int64) ([]*data.Log,error) {
 	if err != nil {
 		return nil,err
 	}
-	logs := make([]*data.Log,0)
+	logs := make([]map[string]interface{},0)
 	for cursor.Next(context.TODO()) {
 		logMap := make(map[string]interface{})
 		err = cursor.Decode(&logMap)
@@ -111,12 +110,8 @@ func (m *MongoDb) FindLog(cid,startTime,endTime int64) ([]*data.Log,error) {
 			panic(err)
 		}
 		if len(logMap) > 0 {
-			logs = append(logs,&data.Log{
-				Cid: logMap[data.Cid].(int64),
-				LogLv: logMap[data.LogLv].(int32),
-				Content: logMap[data.Content].(string),
-				CreateTime: logMap[data.CreateTime].(int64),
-			})
+			delete(logMap,"_id")
+			logs = append(logs,logMap)
 		}
 
 	}
